@@ -22,6 +22,7 @@ def download_image(id: int, image_type: str) -> None:
     bashCommand = 'gsutil cp ' + path + ' ' + target
     process = subprocess.Popen(bashCommand.split(), stdout=subprocess.PIPE)
     output, error = process.communicate()  
+    print(bashCommand)
 
 
 if __name__ == '__main__':
