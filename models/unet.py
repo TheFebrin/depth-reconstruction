@@ -64,7 +64,7 @@ class UNet_down_block(nn.Module):
 
 
 class UNet(TrainableModel):
-    def __init__(self,  downsample=6, in_channels=3, out_channels=3):
+    def __init__(self,  downsample=6, in_channels=3, out_channels=1):
         super().__init__()
 
         self.in_channels, self.out_channels, self.downsample = in_channels, out_channels, downsample
@@ -106,6 +106,11 @@ class UNet(TrainableModel):
 
         x = self.relu(self.last_bn(self.last_conv1(x)))
         x = self.relu(self.last_conv2(x))
+        """
+        TODO: Consider using softplus: https://pytorch.org/docs/stable/generated/torch.nn.Softplus.html
+        
+        x = self.Softplus(self.last_conv2(x))
+        """
         return x
 
     def loss(self, pred, target):

@@ -1,1 +1,7 @@
-TODO
+comet_ml
+torch
+torchvision
+matplotlib
+pillow
+pandas
+tqdm
