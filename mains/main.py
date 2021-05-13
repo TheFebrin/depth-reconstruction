@@ -172,7 +172,7 @@ def main() -> int:
     * Start with Adam with weight_decay (output has to be 0 - 1) + momentum + AMS grad
     * add LR scheduler
     """
-    criterion = torch.nn.MSELoss()  # TODO: Consider SmoothL1
+    criterion = torch.nn.MSELoss()  # TODO: Consider SmoothL1 https://pytorch.org/docs/stable/generated/torch.nn.SmoothL1Loss.html
     device = 'cuda:7'
 
     dataset = create_dataset()
