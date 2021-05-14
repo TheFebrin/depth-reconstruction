@@ -8,8 +8,12 @@ import multiprocessing
 
 from util_functions import get_normals_from_depth
 
-FOLDER_NAME = 'depth'
-# FOLDER_NAME = 'depth_production'
+# FOLDER_NAME = 'depth'
+# TARGET_FOLDER = 'normals'
+
+FOLDER_NAME = 'depth_production'
+TARGET_FOLDER = 'normals_production'
+
 
 def create_normals_from_img(img_name: str, current_idx: int, n_total: int):
     print(f'[Starting] [{current_idx + 1} / {n_total}] creating normals from: {img_name}')
@@ -19,7 +23,7 @@ def create_normals_from_img(img_name: str, current_idx: int, n_total: int):
     img_arr_normals = np.array(get_normals_from_depth(depth_img_arr=img_arr), dtype=np.float32)
 
     outfile = img_name.replace('.png', '')
-    savez_compressed(f'../normals/{outfile}', img_arr_normals)
+    savez_compressed(f'../{TARGET_FOLDER}/{outfile}', img_arr_normals)
     print(f'[Finished] [{current_idx + 1} / {n_total}] creating normals from: {img_name}')
 
 def main():
