@@ -1,15 +1,17 @@
 """
 Script to download the data from gcs.
 
+HAS TO BE EXECUTED FROM /depth-reconstruction/ FOLDER!
+
 This will download images with ids: 0, 1, 2, ..., 9
 python utils/download_data_from_bucket.py 0 10 color
 """
 
 import sys
 import subprocess
-import multiprocessing
+import pandas as pd
 from concurrent.futures import ThreadPoolExecutor
-from multiprocessing import Pool
+
 
 def download_image(id: int, image_type: str) -> None:
 
@@ -24,8 +26,7 @@ def download_image(id: int, image_type: str) -> None:
     output, error = process.communicate()  
     print(bashCommand)
 
-
-if __name__ == '__main__':
+def download_from_bucket():
     image_type = 'color'
     id_image_from, id_image_to = 0, 10
 
@@ -45,3 +46,47 @@ if __name__ == '__main__':
                 executor.submit(download_image, id, image_type)
             except:
                 print(f'Error while downloading: {id}')
+
+
+def download_image_from_csv(index: int, run_id: str, rgb_file: str, depth_file: str):
+    RGB_PATH = f'gs://results.gripper-ros.nomagic.ai/metrics/{run_id}_control-server/{rgb_file}'
+    DEPTH_PATH = f'gs://results.gripper-ros.nomagic.ai/metrics/{run_id}_control-server/{depth_file}'
+
+    RGB_TARGET = f'color_production/color_production_{index}.png'
+    DEPTH_TARGET = f'depth_production/depth_production_{index}.png'
+
+    rgb_bash_command = 'gsutil cp ' + RGB_PATH + ' ' + RGB_TARGET
+    depth_bash_command = 'gsutil cp ' + DEPTH_PATH + ' ' + DEPTH_TARGET
+
+    # print(rgb_bash_command)
+    process = subprocess.Popen(rgb_bash_command.split(), stdout=subprocess.PIPE)
+    output, error = process.communicate()
+
+    # print(depth_bash_command)
+    process = subprocess.Popen(depth_bash_command.split(), stdout=subprocess.PIPE)
+    output, error = process.communicate()
+    print(f'[DONE] Image: {index + 1}!')
+
+def download_from_csv():
+    PATH = 'utils/production_data.csv'
+
+    raw_data = pd.read_csv(PATH)
+    df = raw_data.dropna()
+
+    print(f'Df size: {len(df)} | raw_data size: {len(raw_data)} | Dropped: {len(raw_data) - len(df)}')
+
+    with ThreadPoolExecutor(max_workers=50) as executor:
+        for index, row in df.iterrows():
+            run_id = row['run_id']
+            depth_file = row['depth_file']
+            rgb_file = row['rgb_file']
+
+            try:
+                print(f'Submitting image: {index + 1} / {len(df)}')
+                executor.submit(download_image_from_csv, index, run_id, rgb_file, depth_file)
+            except:
+                print(f'Error while downloading: {id}')
+
+
+if __name__ == '__main__':
+    download_from_csv()

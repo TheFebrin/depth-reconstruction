@@ -1,5 +1,10 @@
+color/
+depth/
+color_production/
+depth_production/
 
 .idea/
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
@@ -10,8 +15,6 @@ __pycache__/
 
 # Distribution / packaging
 .Python
-color/
-depth/
 build/
 develop-eggs/
 dist/

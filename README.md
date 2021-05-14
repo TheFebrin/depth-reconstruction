@@ -19,7 +19,7 @@ pip3 install --upgrade pip
 ```
 
 ```bash
-which python3.8
+which python3.7
 mkvirtualenv -p <path to python3> <name>
 workon <name>
 ```
