@@ -8,11 +8,14 @@ import multiprocessing
 
 from util_functions import get_normals_from_depth
 
-# FOLDER_NAME = 'depth'
-# TARGET_FOLDER = 'normals'
+PRODUCTION = False
 
-FOLDER_NAME = 'depth_production'
-TARGET_FOLDER = 'normals_production'
+if PRODUCTION:
+    FOLDER_NAME = 'depth_production'
+    TARGET_FOLDER = 'normals_production'
+else:
+    FOLDER_NAME = 'depth'
+    TARGET_FOLDER = 'normals'
 
 
 def create_normals_from_img(img_name: str, current_idx: int, n_total: int):
