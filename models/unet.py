@@ -1,124 +1,113 @@
 """
-Module from EPFL-VILAB/XTConsistency
-https://github.com/EPFL-VILAB/XTConsistency/blob/master/modules/unet.py
+U-Net model from https://github.com/milesial/Pytorch-UNet
 """
-
-import os, sys, math, random, itertools
-import numpy as np
-from PIL import Image
 
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-from torchvision import datasets, transforms, models
-from torch.optim.lr_scheduler import MultiStepLR
-from torch.utils.checkpoint import checkpoint
 
-from model import TrainableModel
+class DoubleConv(nn.Module):
+    """(convolution => [BN] => ReLU) * 2"""
 
-
-class UNet_up_block(nn.Module):
-    def __init__(self, prev_channel, input_channel, output_channel, up_sample=True):
+    def __init__(self, in_channels, out_channels, mid_channels=None):
         super().__init__()
-        self.up_sampling = nn.Upsample(scale_factor=2, mode='bilinear', align_corners=False)
-        self.conv1 = nn.Conv2d(prev_channel + input_channel, output_channel, 3, padding=1)
-        self.bn1 = nn.GroupNorm(8, output_channel)
-        self.conv2 = nn.Conv2d(output_channel, output_channel, 3, padding=1)
-        self.bn2 = nn.GroupNorm(8, output_channel)
-        self.conv3 = nn.Conv2d(output_channel, output_channel, 3, padding=1)
-        self.bn3 = nn.GroupNorm(8, output_channel)        
-        self.relu = torch.nn.ReLU()
-        self.up_sample = up_sample
-
-    def forward(self, prev_feature_map, x):
-        if self.up_sample:
-            x = self.up_sampling(x)
-        x = torch.cat((x, prev_feature_map), dim=1)
-        x = self.relu(self.bn1(self.conv1(x)))
-        x = self.relu(self.bn2(self.conv2(x)))
-        x = self.relu(self.bn3(self.conv3(x)))
-        return x
-
-
-class UNet_down_block(nn.Module):
-    def __init__(self, input_channel, output_channel, down_size=True):
-        super().__init__()
-        self.conv1 = nn.Conv2d(input_channel, output_channel, 3, padding=1)
-        self.bn1 = nn.GroupNorm(8, output_channel)
-        self.conv2 = nn.Conv2d(output_channel, output_channel, 3, padding=1)
-        self.bn2 = nn.GroupNorm(8, output_channel)
-        self.conv3 = nn.Conv2d(output_channel, output_channel, 3, padding=1)
-        self.bn3 = nn.GroupNorm(8, output_channel)
-        self.max_pool = nn.MaxPool2d(2, 2)
-        self.relu = nn.ReLU()
-        self.down_size = down_size
-
-    def forward(self, x):
-        x = self.relu(self.bn1(self.conv1(x)))
-        x = self.relu(self.bn2(self.conv2(x)))
-        x = self.relu(self.bn3(self.conv3(x)))
-        if self.down_size:
-            x = self.max_pool(x)
-        return x
-
-
-class UNet(TrainableModel):
-    def __init__(self,  downsample=6, in_channels=3, out_channels=3):
-        super().__init__()
-
-        self.in_channels, self.out_channels, self.downsample = in_channels, out_channels, downsample
-        self.down1 = UNet_down_block(in_channels, 16, False)
-        self.down_blocks = nn.ModuleList(
-            [UNet_down_block(2**(4+i), 2**(5+i), True) for i in range(0, downsample)]
+        if not mid_channels:
+            mid_channels = out_channels
+        self.double_conv = nn.Sequential(
+            nn.Conv2d(in_channels, mid_channels, kernel_size=3, padding=1),
+            nn.BatchNorm2d(mid_channels),
+            nn.ReLU(inplace=True),
+            nn.Conv2d(mid_channels, out_channels, kernel_size=3, padding=1),
+            nn.BatchNorm2d(out_channels),
+            nn.ReLU(inplace=True)
         )
 
-        bottleneck = 2**(4 + downsample)
-        self.mid_conv1 = nn.Conv2d(bottleneck, bottleneck, 3, padding=1)
-        self.bn1 = nn.GroupNorm(8, bottleneck)
-        self.mid_conv2 = nn.Conv2d(bottleneck, bottleneck, 3, padding=1)
-        self.bn2 = nn.GroupNorm(8, bottleneck)
-        self.mid_conv3 = torch.nn.Conv2d(bottleneck, bottleneck, 3, padding=1)
-        self.bn3 = nn.GroupNorm(8, bottleneck)
+    def forward(self, x):
+        return self.double_conv(x)
 
-        self.up_blocks = nn.ModuleList(
-            [UNet_up_block(2**(4+i), 2**(5+i), 2**(4+i)) for i in range(0, downsample)]
+
+class Down(nn.Module):
+    """Downscaling with maxpool then double conv"""
+
+    def __init__(self, in_channels, out_channels):
+        super().__init__()
+        self.maxpool_conv = nn.Sequential(
+            nn.MaxPool2d(2),
+            DoubleConv(in_channels, out_channels)
         )
 
-        self.last_conv1 = nn.Conv2d(16, 16, 3, padding=1)
-        self.last_bn = nn.GroupNorm(8, 16)
-        self.last_conv2 = nn.Conv2d(16, out_channels, 1, padding=0)
-        self.relu = nn.ReLU()
+    def forward(self, x):
+        return self.maxpool_conv(x)
+
+
+class Up(nn.Module):
+    """Upscaling then double conv"""
+
+    def __init__(self, in_channels, out_channels, bilinear=True):
+        super().__init__()
+
+        # if bilinear, use the normal convolutions to reduce the number of channels
+        if bilinear:
+            self.up = nn.Upsample(scale_factor=2, mode='bilinear', align_corners=True)
+            self.conv = DoubleConv(in_channels, out_channels, in_channels // 2)
+        else:
+            self.up = nn.ConvTranspose2d(in_channels, in_channels // 2, kernel_size=2, stride=2)
+            self.conv = DoubleConv(in_channels, out_channels)
+
+
+    def forward(self, x1, x2):
+        x1 = self.up(x1)
+        # input is CHW
+        diffY = x2.size()[2] - x1.size()[2]
+        diffX = x2.size()[3] - x1.size()[3]
+
+        x1 = F.pad(x1, [diffX // 2, diffX - diffX // 2,
+                        diffY // 2, diffY - diffY // 2])
+        # if you have padding issues, see
+        # https://github.com/HaiyongJiang/U-Net-Pytorch-Unstructured-Buggy/commit/0e854509c2cea854e247a9c615f175f76fbb2e3a
+        # https://github.com/xiaopeng-liao/Pytorch-UNet/commit/8ebac70e633bac59fc22bb5195e513d5832fb3bd
+        x = torch.cat([x2, x1], dim=1)
+        return self.conv(x)
+
+
+class OutConv(nn.Module):
+    def __init__(self, in_channels, out_channels):
+        super(OutConv, self).__init__()
+        self.conv = nn.Conv2d(in_channels, out_channels, kernel_size=1)
 
     def forward(self, x):
-        x = self.down1(x)
-        xvals = [x]
-        for i in range(0, self.downsample):
-            x = self.down_blocks[i](x)
-            xvals.append(x)
-
-        x = self.relu(self.bn1(self.mid_conv1(x)))
-        x = self.relu(self.bn2(self.mid_conv2(x)))
-        x = self.relu(self.bn3(self.mid_conv3(x)))
-
-        for i in range(0, self.downsample)[::-1]:
-            x = self.up_blocks[i](xvals[i], x)
-
-        x = self.relu(self.last_bn(self.last_conv1(x)))
-        x = self.relu(self.last_conv2(x))
-        """
-        TODO: Consider using softplus: https://pytorch.org/docs/stable/generated/torch.nn.Softplus.html
-        
-        x = self.Softplus(self.last_conv2(x))
-        """
-        return x
-
-    def loss(self, pred, target):
-        loss = torch.tensor(0.0, device=pred.device)
-        return loss, (loss.detach(),)
+        return self.conv(x)
 
 
-if __name__ == '__main__':
-    unet = UNet(downsample=6, in_channels=3, out_channels=3)
-    print(unet)
+class UNet(nn.Module):
+    def __init__(self, n_channels, n_classes, bilinear=True):
+        super(UNet, self).__init__()
+        self.n_channels = n_channels
+        self.n_classes = n_classes
+        self.bilinear = bilinear
 
+        self.inc = DoubleConv(n_channels, 64)
+        self.down1 = Down(64, 128)
+        self.down2 = Down(128, 256)
+        self.down3 = Down(256, 512)
+        factor = 2 if bilinear else 1
+        self.down4 = Down(512, 1024 // factor)
+        self.up1 = Up(1024, 512 // factor, bilinear)
+        self.up2 = Up(512, 256 // factor, bilinear)
+        self.up3 = Up(256, 128 // factor, bilinear)
+        self.up4 = Up(128, 64, bilinear)
+        self.outc = OutConv(64, n_classes)
+
+    def forward(self, x):
+        x1 = self.inc(x)
+        x2 = self.down1(x1)
+        x3 = self.down2(x2)
+        x4 = self.down3(x3)
+        x5 = self.down4(x4)
+        x = self.up1(x5, x4)
+        x = self.up2(x, x3)
+        x = self.up3(x, x2)
+        x = self.up4(x, x1)
+        logits = self.outc(x)
+        return logits
