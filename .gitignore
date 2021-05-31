@@ -4,6 +4,7 @@ color_production/
 depth_production/
 normals/
 normals_production/
+/models/saved_models
 
 .idea/
 

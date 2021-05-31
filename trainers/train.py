@@ -94,6 +94,7 @@ def train(
                         valid_loss /= len(test_synthetic_dataloader)
                         if valid_loss < best_synthetic_loss:
                             best_synthetic_loss = valid_loss
+                            print(f'Found better synthetic model. Epoch: {epoch} | total_steps: {total_steps}\n')
                             torch.save(model.state_dict(), 'models/best_synthetic_model.pth')
 
                         print(f'Epoch: {epoch} | Step: {total_steps} | Synthetic loss: {valid_loss}')
@@ -110,7 +111,8 @@ def train(
                         valid_loss /= len(test_production_dataloader)
                         if valid_loss < best_production_loss:
                             best_production_loss = valid_loss
-                            torch.save(model.state_dict(), 'models/best_prodiction_model.pth')
+                            print(f'Found better production model. Epoch: {epoch} | total_steps: {total_steps}\n')
+                            torch.save(model.state_dict(), 'models/best_production_model.pth')
                         print(f'Epoch: {epoch} | Step: {total_steps} | Production loss: {valid_loss}')
                         experiment.log_metric(f'valid_production_loss', valid_loss, step=total_steps)
 
