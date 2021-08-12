@@ -26,7 +26,7 @@ from tqdm import tqdm
 from typing import Union
 from models.unet_epfl import UNet as UNetEPFL
 from models.unet import UNet
-from datasets.dataset import NormalsDataset, DepthDataset
+from datasets.dataset import NormalsDataset, DepthDataset, create_dataset
 from trainers.train import train
 
 torch.cuda.empty_cache()
@@ -50,93 +50,8 @@ def parse_args():
     )
     return parser.parse_args()
 
-def create_depth_dataset(csv_path: str, color_path: str, depth_path: str) -> DepthDataset:
-    return DepthDataset(
-        csv_path=csv_path,
-        color_path=color_path,
-        depth_path=depth_path,
-        random_vertical_flip=True,
-        random_horizontal_flip=True,
-        common_transform=transforms.Compose([
-            # transforms.Resize((4 * 256, 7 * 256)),
-            transforms.Resize((128, 256)),  # temporary lower the resolution
-            transforms.ToTensor(),
-        ]),
-        image_transform=transforms.Compose([
-            transforms.Normalize((0.485, 0.456, 0.406), (0.229, 0.224, 0.225)),  # mean and std from ImageNet
-        ]),
-        depth_transform=transforms.Compose([
-            lambda x: x.float(),
-            lambda x: x / 2 ** 16  # normalize depth, no needed in case of normals
-        ]),
-    )
-
-def create_normals_dataset(csv_path: str, color_path: str, depth_path: str) -> NormalsDataset:
-    dataset = NormalsDataset(
-        csv_path=csv_path,
-        color_path=color_path,
-        depth_path=depth_path,
-        random_vertical_flip=True,
-        random_horizontal_flip=True,
-        common_transform=transforms.Compose([
-            # transforms.Resize((4 * 256, 7 * 256)),
-            transforms.Resize((128, 256)),  # temporary lower the resolution
-            lambda x: np.array(x),
-            transforms.ToTensor(),
-        ]),
-        image_transform=transforms.Compose([
-            # transforms.Normalize((0.485, 0.456, 0.406), (0.229, 0.224, 0.225)),  # mean and std from ImageNet
-        ]),
-        depth_transform=transforms.Compose([
-            # lambda x: x / 2 ** 16  # normalize depth, no needed in case of normals
-        ]),
-    )
-    return dataset
-
-def create_dataset(csv_path: str, color_path: str, depth_path: str) -> Union[NormalsDataset, DepthDataset]:
-    dataset_f = create_normals_dataset
-    return dataset_f(
-        csv_path=csv_path,
-        color_path=color_path,
-        depth_path=depth_path
-    )
 
 def main() -> int:
-    """
-    TODO:
-        * crop tote from image
-        * predict normals instead of depth
-            https://xiaolonw.github.io/papers/deep3d.pdf
-        * freeze validation sets from real and synthetic data
-
-        * Add argparse 
-        * Data augmentation
-            - ✔ flips horizontal + vertical
-            - ✔️standarize data - use the same mean and std as in Imagenet
-                https://forums.fast.ai/t/is-normalizing-the-input-image-by-imagenet-mean-and-std-really-necessary/51338
-            - rotations - tricky because rotation changes shape, consider adding a black pad, so image is a big square
-            - autoaugment
-
-        https://github.com/pytorch/vision/blob/e35793a1a4000db1f9f99673437c514e24e65451/torchvision/models/detection/roi_heads.py#L45
-        box_loss = F.smooth_l1_loss(
-        box_regression[sampled_pos_inds_subset, labels_pos],
-        regression_targets[sampled_pos_inds_subset],
-        beta=1 / 9,
-        reduction='sum',
-    )
-    """
-
-    """
-    Use SGD and be the king of the word!
-        * https://arxiv.org/pdf/1812.01187.pdf - practical - changes life
-        * https://arxiv.org/pdf/1506.01186.pdf - some critique 
-        * https://arxiv.org/pdf/1711.04623.pdf
-        * http://proceedings.mlr.press/v70/arpit17a/arpit17a.pdf
-
-    * Start with Adam with weight_decay (output has to be 0 - 1) + momentum + AMS grad
-    * add LR scheduler 
-    """
-
     config = yaml.safe_load(open("config.yaml"))
 
     args              = parse_args()
@@ -180,16 +95,19 @@ def main() -> int:
         csv_path='datasets/color_normals_test_df.csv',
         color_path='color',
         depth_path='depth',
+        mode='test',
     )
     test_production_dataset = create_dataset(
         csv_path='datasets/color_production_normals_test_df.csv',
         color_path='color_production',
         depth_path='depth_production',
+        mode='test',
     )
     train_dataset = create_dataset(
         csv_path=train_csv,
         color_path=train_color_path,
         depth_path=train_depth_path,
+        mode='train',
     )
 
     test_synthetic_dataloader = DataLoader(
@@ -203,6 +121,7 @@ def main() -> int:
     )
 
     # Log hyperparameters to Comet
+    experiment.set_name(name)
     experiment.add_tag(name)
     experiment.log_parameters({
         epochs: epochs,

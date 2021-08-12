@@ -7,7 +7,7 @@ import matplotlib.pyplot as plt
 @numba.jit(nopython=True)
 def get_normals_from_depth(depth_img_arr: np.ndarray) -> np.ndarray:
     n, m = depth_img_arr.shape
-    normals_img_arr = np.zeros((n, m, 3))
+    normals_img_arr = np.zeros((n, m, 3), dtype=np.float32)
 
     for x in range(1, n - 1):
         for y in range(1, m - 1):

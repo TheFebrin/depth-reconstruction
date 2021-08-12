@@ -1,9 +1,9 @@
 LEARNING_RATE: 0.0001
-BATCH_SIZE: 32
+BATCH_SIZE: 1
 EPOCHS: 1000
-TRAIN_CSV_PATH: datasets/color_production_normals_train_df.csv
-TRAIN_COLOR_IMAGES_PATH: color_production
-TRAIN_DEPTH_IMAGES_PATH: depth_production
+TRAIN_CSV_PATH: datasets/color_normals_train_df.csv
+TRAIN_COLOR_IMAGES_PATH: color
+TRAIN_DEPTH_IMAGES_PATH: depth
 OPTIMIZER: adam
-CRITERION: mse
+CRITERION: smoothl1
 VALIDATE_EVERY: 200  # run validation on test dataset and save metrics

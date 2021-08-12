@@ -8,3 +8,4 @@ tqdm
 numba
 sklearn
 pyyaml
+albumentations

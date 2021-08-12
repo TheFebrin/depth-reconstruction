@@ -76,20 +76,34 @@ def train(
                     model.eval()
                     with torch.no_grad():
                         # save images from training set
-                        experiment.log_image(x[0].detach().cpu().permute(1, 2, 0), name=f'train_color_image_{total_steps}')
-                        experiment.log_image(y[0].detach().cpu().permute(1, 2, 0), name=f'train_normals_image_{total_steps}')
-                        experiment.log_image(pred[0].detach().cpu().permute(1, 2, 0), name=f'train_prediction_image_{total_steps}')
+                        experiment.log_image(x[0].detach().cpu().permute(1, 2, 0),
+                                             name=f'train_color_image_{total_steps}')
+                        experiment.log_image(y[0].detach().cpu().permute(1, 2, 0),
+                                             name=f'train_normals_image_{total_steps}')
+                        experiment.log_image(pred[0].detach().cpu().permute(1, 2, 0),
+                                             name=f'train_prediction_image_{total_steps}')
 
                         # save mean loss
                         experiment.log_metric(f'mean_loss', epoch_loss / steps, step=total_steps)
 
                         valid_loss: float = 0.0
-                        for x, y in tqdm(test_synthetic_dataloader, desc=f'Validating on synthetic test set. Epoch: {epoch + 1} | Total steps: {total_steps}.'):
+                        for x, y in tqdm(
+                                test_synthetic_dataloader,
+                                desc=f'Validating on synthetic test set. Epoch: {epoch + 1} | Total steps: {total_steps}.'
+                        ):
                             x = x.to(device)
                             y = y.to(device)
                             pred = model(x)
                             loss = criterion(pred, y)
                             valid_loss += loss
+
+                        # save images from test_synthetic_dataloader
+                        experiment.log_image(x[0].detach().cpu().permute(1, 2, 0),
+                                             name=f'train_color_image_{total_steps}')
+                        experiment.log_image(y[0].detach().cpu().permute(1, 2, 0),
+                                             name=f'train_normals_image_{total_steps}')
+                        experiment.log_image(pred[0].detach().cpu().permute(1, 2, 0),
+                                             name=f'train_prediction_image_{total_steps}')
 
                         valid_loss /= len(test_synthetic_dataloader)
                         if valid_loss < best_synthetic_loss:
@@ -101,12 +115,23 @@ def train(
                         experiment.log_metric(f'valid_synthetic_loss', valid_loss, step=total_steps)
 
                         valid_loss = 0.0
-                        for x, y in tqdm(test_production_dataloader, desc=f'Validating on production test set. Epoch: {epoch + 1} | Total steps: {total_steps}.'):
+                        for x, y in tqdm(
+                                test_production_dataloader,
+                                desc=f'Validating on production test set. Epoch: {epoch + 1} | Total steps: {total_steps}.'
+                        ):
                             x = x.to(device)
                             y = y.to(device)
                             pred = model(x)
                             loss = criterion(pred, y)
                             valid_loss += loss
+
+                        # save images from test_production_dataloader
+                        experiment.log_image(x[0].detach().cpu().permute(1, 2, 0),
+                                             name=f'train_color_image_{total_steps}')
+                        experiment.log_image(y[0].detach().cpu().permute(1, 2, 0),
+                                             name=f'train_normals_image_{total_steps}')
+                        experiment.log_image(pred[0].detach().cpu().permute(1, 2, 0),
+                                             name=f'train_prediction_image_{total_steps}')
 
                         valid_loss /= len(test_production_dataloader)
                         if valid_loss < best_production_loss:
