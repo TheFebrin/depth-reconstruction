@@ -14,8 +14,7 @@ def ping():
     print(f"[Prediction client] [ping] Message from server: {response.message}")
 
 
-def predict():
-    img = np.array(Image.open('../images/color_production_1.png'))
+def predict(img: np.ndarray) -> np.ndarray:
     assert img.dtype == np.uint8, f'Wrong dtype: {img.dtype}'
 
     with grpc.insecure_channel(
@@ -33,13 +32,15 @@ def predict():
     prediction = np.frombuffer(response.image, dtype=response.dtype).reshape(*img.shape)
 
     print(f"[Prediction client] [predict] got message from server")
-    plt.figure(figsize=(15, 15))
-    plt.imshow(prediction)
-    plt.show()
+    return prediction
 
 
 def main():
-    predict()
+    img = np.array(Image.open('../images/color_production_1.png'))
+    prediction = predict(img=img)
+    plt.figure(figsize=(15, 15))
+    plt.imshow(prediction)
+    plt.show()
 
 
 if __name__ == '__main__':
