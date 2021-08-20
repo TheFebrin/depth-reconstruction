@@ -9,3 +9,4 @@ numba
 sklearn
 pyyaml
 albumentations
+grpcio-tools

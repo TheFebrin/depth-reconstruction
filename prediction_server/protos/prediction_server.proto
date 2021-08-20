@@ -1,0 +1,35 @@
+syntax = "proto3";
+
+//option java_multiple_files = true;
+//option java_package = "io.grpc.examples.helloworld";
+//option java_outer_classname = "HelloWorldProto";
+//option objc_class_prefix = "HLW";
+
+//package helloworld;
+
+// The greeting service definition.
+service PredictionServer {
+  rpc ping (PingRequest) returns (PingResponse) {}
+
+  rpc predict ( PredictionRequest) returns ( PredictionResponse) {}
+}
+
+message PingRequest {
+  string message = 1;
+}
+
+message PingResponse {
+  string message = 1;
+}
+
+message PredictionRequest {
+  bytes image = 1;
+  int32 height = 2;
+  int32 width = 3;
+  int32 channels = 4;
+}
+
+message PredictionResponse {
+  bytes image = 1;
+  string dtype = 2;
+}
