@@ -45,7 +45,7 @@ class PredictionServer(prediction_server_pb2_grpc.PredictionServerServicer):
     def __init__(
         self,
         model_path: str = '../models/saved_models/best_synthetic_model.pth',
-        device: str = 'cpu',
+        device: str = 'cuda',
     ):
         self._model_path = model_path
         self._device = device
