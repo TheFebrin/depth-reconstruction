@@ -35,7 +35,7 @@ def parse_args():
         description='Parameters for prediction server.'
     )
     parser.add_argument(
-        '--device', required=True, type=str, help='Which device.', choices=['cpu', 'gpu']
+        '--device', required=True, type=str, help='Which device.', choices=['cpu', 'cuda']
     )
     return parser.parse_args()
 
@@ -45,7 +45,7 @@ class PredictionServer(prediction_server_pb2_grpc.PredictionServerServicer):
     def __init__(
         self,
         model_path: str = '../models/saved_models/best_synthetic_model.pth',
-        device: str = 'cuda',
+        device: str = 'cpu',
     ):
         self._model_path = model_path
         self._device = device
