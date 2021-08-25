@@ -47,8 +47,19 @@ class PredictionServer(prediction_server_pb2_grpc.PredictionServerServicer):
         model_path: str = '../models/saved_models/best_synthetic_model.pth',
         device: str = 'cpu',
     ):
+        print('Start server init ...')
         self._model_path = model_path
         self._device = device
+        print('Loading model')
+        # Load model
+        self._model = UNet(n_channels=3, n_classes=3, bilinear=False)
+        self._model.load_state_dict(torch.load(
+            f=self._model_path,
+            map_location=torch.device(self._device))
+        )
+
+        print('Model loaded.')
+        print('Server init finished. Waiting for request...')
 
     def ping(self, request, context):
         print(context, dir(context))
@@ -56,14 +67,6 @@ class PredictionServer(prediction_server_pb2_grpc.PredictionServerServicer):
 
     def predict(self, request, context):
         print(f'Received request image: {request.height} x {request.width} x {request.channels}')
-        # Load model
-        model = UNet(n_channels=3, n_classes=3, bilinear=False)
-        model.load_state_dict(torch.load(
-            f=self._model_path,
-            map_location=torch.device(self._device))
-        )
-
-        print('Model loaded.')
 
         # Define transforms on the image
         transform = A.Compose([
@@ -79,7 +82,7 @@ class PredictionServer(prediction_server_pb2_grpc.PredictionServerServicer):
         print('Image read and transformed.')
 
         with torch.no_grad():
-            pred_img = model(color_img.view(-1, *color_img.shape))[0].detach().permute(1, 2, 0).numpy()
+            pred_img = self._model(color_img.view(-1, *color_img.shape))[0].detach().permute(1, 2, 0).numpy()
 
         print('Prediction ready!')
 
@@ -90,6 +93,7 @@ class PredictionServer(prediction_server_pb2_grpc.PredictionServerServicer):
 
 
 def serve():
+    print('Starting prediction server.')
     args = parse_args()
     server = grpc.server(futures.ThreadPoolExecutor(max_workers=10))
     prediction_server_pb2_grpc.add_PredictionServerServicer_to_server(
