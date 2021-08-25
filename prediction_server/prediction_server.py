@@ -20,6 +20,7 @@ import prediction_server_pb2
 import prediction_server_pb2_grpc
 import grpc
 import torch
+import argparse
 
 import numpy as np
 import albumentations as A
@@ -27,6 +28,16 @@ import albumentations as A
 from concurrent import futures
 
 from models.unet import UNet
+
+
+def parse_args():
+    parser = argparse.ArgumentParser(
+        description='Parameters for prediction server.'
+    )
+    parser.add_argument(
+        '--device', required=True, type=str, help='Which device.', choices=['cpu', 'gpu']
+    )
+    return parser.parse_args()
 
 
 class PredictionServer(prediction_server_pb2_grpc.PredictionServerServicer):
@@ -79,8 +90,11 @@ class PredictionServer(prediction_server_pb2_grpc.PredictionServerServicer):
 
 
 def serve():
+    args = parse_args()
     server = grpc.server(futures.ThreadPoolExecutor(max_workers=10))
-    prediction_server_pb2_grpc.add_PredictionServerServicer_to_server(PredictionServer(), server)
+    prediction_server_pb2_grpc.add_PredictionServerServicer_to_server(
+        PredictionServer(device=args.device), server
+    )
     server.add_insecure_port('[::]:50042')
     server.start()
     server.wait_for_termination()
