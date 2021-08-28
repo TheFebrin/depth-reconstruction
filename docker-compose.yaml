@@ -1,0 +1,5 @@
+version: "3.8"
+services:
+  deep-learning:
+    container_name: instance-segmentation
+    build: .

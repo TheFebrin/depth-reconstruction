@@ -80,28 +80,27 @@ class NormalsDataset(Dataset):
 
     def __init__(
         self,
-        csv_path: str,
         color_path: str,
         depth_path: str,
         common_albumentation_transform=None,
         color_albumentation_transform=None,
     ):
-        self._csv_path = csv_path
         self._color_path = color_path
         self._depth_path = depth_path
-        self.df = pd.read_csv(csv_path)
         self.common_albumentation_transform = common_albumentation_transform
         self.color_albumentation_transform = color_albumentation_transform
 
+        self._color_file_names = sorted(os.listdir(color_path))
+        self._depth_file_names = sorted(os.listdir(depth_path))
+
+        assert len(self._color_file_names) == len(self._depth_file_names)
+
     def __len__(self):
-        return len(self.df)
+        return len(self._color_file_names)
 
     def __getitem__(self, idx):
-        color_img_name = self.df.iloc[idx][1]
-
-        # As normals are n x m x 3 matices with values [-1, 1] they cannot be converted
-        # to PIL.Image to use transforms.Resize
-        depth_img_name = self.df.iloc[idx][2].replace('npz', 'png')
+        color_img_name = self._color_file_names[idx]
+        depth_img_name = self._depth_file_names[idx]
 
         # Read an image with OpenCV and convert it to the RGB colorspace
         color_img = cv2.imread(os.path.join(self._color_path, color_img_name))
@@ -163,18 +162,16 @@ def create_depth_dataset(csv_path: str, color_path: str, depth_path: str) -> Dep
 
 
 def create_normals_dataset(
-        csv_path: str,
         color_path: str,
         depth_path: str
 ) -> NormalsDataset:
     dataset = NormalsDataset(
-        csv_path=csv_path,
         color_path=color_path,
         depth_path=depth_path,
         common_albumentation_transform=A.Compose([
             A.HorizontalFlip(p=0.5),
             A.VerticalFlip(p=0.5),
-            A.RandomCrop(width=1720, height=980),
+            # A.RandomCrop(width=1800, height=980),
             A.Resize(width=1280, height=720)
         ]),
         color_albumentation_transform=A.Compose([
@@ -196,12 +193,10 @@ def create_normals_dataset(
 
 
 def create_normals_dataset_test(
-        csv_path: str,
         color_path: str,
         depth_path: str
 ) -> NormalsDataset:
     dataset = NormalsDataset(
-        csv_path=csv_path,
         color_path=color_path,
         depth_path=depth_path,
         common_albumentation_transform=A.Compose([
@@ -212,7 +207,6 @@ def create_normals_dataset_test(
 
 
 def create_dataset(
-        csv_path: str,
         color_path: str,
         depth_path: str,
         mode: str='train',
@@ -224,7 +218,6 @@ def create_dataset(
         dataset_f = create_normals_dataset_test
 
     return dataset_f(
-        csv_path=csv_path,
         color_path=color_path,
         depth_path=depth_path
     )
@@ -233,8 +226,8 @@ def create_dataset(
 def test_normals_dataset():
     dataset = create_normals_dataset(
         csv_path='datasets/color_normals_test_df.csv',
-        color_path='color',
-        depth_path='depth',
+        color_path='color2',
+        depth_path='depth2',
     )
 
     # Test production dataset
@@ -273,7 +266,7 @@ def test_normals_dataset():
         plt.figure(figsize=(15, 10))
         plt.imshow(normals_img)
         plt.show()
-        break
+
 
 
 def test_depth_dataset():
