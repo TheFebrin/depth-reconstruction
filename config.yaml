@@ -6,4 +6,4 @@ TRAIN_COLOR_IMAGES_PATH: color
 TRAIN_DEPTH_IMAGES_PATH: depth
 OPTIMIZER: adam
 CRITERION: smoothl1
-VALIDATE_EVERY: 200  # run validation on test dataset and save metrics
+VALIDATE_EVERY: 500  # run validation on test dataset and save metrics
