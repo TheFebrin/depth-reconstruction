@@ -74,9 +74,9 @@ It is worth mentioning that the robot would fail to pick an item with rotation a
 
 --------------
 ## Robot picking the item
-![Robot picking](/images/experiment_on_robot/item_left_videos/item_left_height_1_source.gif)
+![Robot picking 1](/images/experiment_on_robot/item_left_videos/item_left_height_1_source.gif)
 
-![Robot picking](/images/experiment_on_robot/item_left_videos/item_left_height_3_source.gif)
+![Robot picking 2](/images/experiment_on_robot/item_left_videos/item_left_height_3_source.gif)
 
 --------------
 ## Notebooks
