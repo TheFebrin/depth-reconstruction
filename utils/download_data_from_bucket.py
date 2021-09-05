@@ -15,8 +15,8 @@ from concurrent.futures import ThreadPoolExecutor
 
 def download_image(id: int, image_type: str) -> None:
 
-    BASE_PATH = f'gs://staging-other-matrix-source-data-nomagic-ai/SBX_COCO_NoMagic_V3_2021_01_26/{image_type}/Top_NoMagic_'
-    BASE_TARGET = f'{image_type}/Top_NoMagic_'
+    BASE_PATH = f'gs://staging-other-matrix-source-data-nomagic-ai/SBX_COCO_NoMagic_Polybag_V2_20210315/{image_type}/SBXDepthSensor_Top_PolyBag_'
+    BASE_TARGET = f'{image_type}2/SBXCameraSensor_Top_PolyBag_'
 
     path   = BASE_PATH   + (8 - len(str(id))) * '0' + f'{id}.png'
     target = BASE_TARGET + (8 - len(str(id))) * '0' + f'{id}.png'
@@ -25,11 +25,13 @@ def download_image(id: int, image_type: str) -> None:
     process = subprocess.Popen(bashCommand.split(), stdout=subprocess.PIPE)
     output, error = process.communicate()  
     print(bashCommand)
+    print(output, error)
 
-def download_from_bucket():
-    image_type = 'color'
-    id_image_from, id_image_to = 0, 10
-
+def download_from_bucket(
+        image_type: str='color',
+        id_image_from: int = 0,
+        id_image_to: int = 10
+):
     if len(sys.argv) > 1:
         id_image_from = int(sys.argv[1])
 
@@ -89,4 +91,10 @@ def download_from_csv():
 
 
 if __name__ == '__main__':
-    download_from_csv()
+    download_from_bucket(image_type='depth')  # color
+
+    """
+    gs://staging-other-matrix-source-data-nomagic-ai/SBX_COCO_NoMagic_Polybag_V2_20210315/depth/SBXDepthSensor_Top_PolyBag_00000000.png
+    
+    gs://staging-other-matrix-source-data-nomagic-ai/SBX_COCO_NoMagic_Polybag_V2_20210315/depth/SBXCameraSensor_Top_PolyBag_00000000.png
+    """

@@ -91,31 +91,12 @@ def main() -> int:
         # https://pytorch.org/docs/stable/generated/torch.nn.SmoothL1Loss.html
         criterion = torch.nn.SmoothL1Loss()
 
-    test_dataset = create_dataset(
-        csv_path='datasets/color_normals_test_df.csv',
-        color_path='color',
-        depth_path='depth',
-        mode='test',
-    )
-    test_production_dataset = create_dataset(
-        csv_path='datasets/color_production_normals_test_df.csv',
-        color_path='color_production',
-        depth_path='depth_production',
-        mode='test',
-    )
     train_dataset = create_dataset(
-        csv_path=train_csv,
         color_path=train_color_path,
         depth_path=train_depth_path,
         mode='train',
     )
 
-    test_synthetic_dataloader = DataLoader(
-        test_dataset, batch_size=batch_size, shuffle=True,
-    )
-    test_production_dataloader = DataLoader(
-        test_production_dataset, batch_size=batch_size, shuffle=True,
-    )
     train_dataloader = DataLoader(
         train_dataset, batch_size=batch_size, shuffle=True,
     )
@@ -133,8 +114,6 @@ def main() -> int:
     train(
         model=model,
         train_dataloader=train_dataloader,
-        test_synthetic_dataloader=test_synthetic_dataloader,
-        test_production_dataloader=test_production_dataloader,
         epochs=epochs,
         criterion=criterion,
         optimizer=optimizer,
